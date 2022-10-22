@@ -3,7 +3,7 @@
 use core::{panic};
 
 use soroban_sdk::{
-    contracterror, contractimpl, contracttype, map, symbol, vec, Address, BytesN, ConversionError,
+    contractimpl, contracttype, symbol, Address, BytesN, ConversionError,
     Env, RawVal, Symbol, TryFromVal, Vec,
 };
 
@@ -46,13 +46,6 @@ pub struct Proposal {
     pub end_time: u64,
     // instrunctions will be executed in sequence
     pub instr: Vec<ProposalInstr>,
-}
-
-#[contracterror]
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Error {
-    IncorrectNonceForInvoker = 1,
-    IncorrectNonce = 2,
 }
 
 pub trait DaoTrait {

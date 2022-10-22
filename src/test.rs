@@ -9,7 +9,7 @@ use crate::{
 use soroban_sdk::{
     symbol,
     testutils::{Accounts, Ledger, LedgerInfo},
-    vec, AccountId, Address, BytesN, Env, IntoVal, RawVal, BigInt,
+    vec, AccountId, Address, BytesN, Env, IntoVal, BigInt,
 };
 
 fn create_token_contract(e: &Env, admin: &AccountId) -> (BytesN<32>, token::Client) {
