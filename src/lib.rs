@@ -28,6 +28,7 @@ pub enum DataKey {
     Proposal(u32),
     ProposalId,
     Voted(ProposalVote),
+    Executed(u32)
 }
 
 #[contracttype]
@@ -76,16 +77,17 @@ pub struct DaoContract;
 #[contractimpl]
 impl DaoTrait for DaoContract {
     fn init(env: Env) {
-        if None == get_admin(&env) {
-            // make the invoker the admin
-            set_admin(&env, env.invoker());
-            // give the invoker 1 "share" or "reputation"
-            add_shares(&env, 1, env.invoker());
-
-            // allow the admin to distributed shares for a week
-            env.data()
-                .set(DataKey::Bootstrap, env.ledger().timestamp() + 3600 * 24 * 7);
+        if None != get_admin(&env) {
+            panic!();
         }
+        // make the invoker the admin
+        set_admin(&env, env.invoker());
+        // give the invoker 1 "share" or "reputation"
+        add_shares(&env, 1, env.invoker());
+
+        // allow the admin to distributed shares for a week
+        env.data()
+            .set(DataKey::Bootstrap, env.ledger().timestamp() + 3600 * 24 * 7);
     }
 
     fn x_shares(env: Env, amount: i32, to: Address) {
@@ -112,6 +114,10 @@ impl DaoTrait for DaoContract {
     }
 
     fn execute(env: Env, prop_id: u32) {
+
+        // can only execute once
+        assert!(!get_executed(&env, prop_id));
+
         let prop = env
             .data()
             .get::<_, Proposal>(DataKey::Proposal(prop_id))
@@ -146,6 +152,7 @@ impl DaoTrait for DaoContract {
                 Err(_) => panic!(),
             }
         }
+        set_executed(&env, prop_id);
     }
 
     fn shares(env: Env, of: Address) -> i32 {
@@ -157,6 +164,8 @@ impl DaoTrait for DaoContract {
     }
 
     fn vote(env: Env, prop_id: u32) {
+        assert!(!voted(&env, env.invoker(), prop_id));
+
         let mut prop = env
             .data()
             .get::<_, Proposal>(DataKey::Proposal(prop_id))
@@ -175,12 +184,29 @@ impl DaoTrait for DaoContract {
 
         env.data().set(
             DataKey::Voted(ProposalVote {
-                voter: env.invoker().clone(),
+                voter: env.invoker(),
                 prop_id,
             }),
             true,
         );
     }
+}
+
+fn set_executed(env: &Env, prop_id: u32){
+    env.data().set(DataKey::Executed(prop_id), true)
+}
+
+fn get_executed(env: &Env, prop_id: u32)-> bool{
+    env.data().get(DataKey::Executed(prop_id))
+    .unwrap_or(Ok(false))
+    .unwrap()
+}
+
+fn voted(env: &Env, voter: Address, prop_id: u32) -> bool{
+    return env.data().get(DataKey::Voted(ProposalVote {
+        voter: voter.clone(),
+        prop_id,
+    })).unwrap_or(Ok(false)).unwrap()
 }
 
 fn get_and_inc_prop_id(env: &Env) -> u32 {

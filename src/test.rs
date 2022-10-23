@@ -43,7 +43,6 @@ fn test() {
     let (dao_contract_id, client) = create_dao_contract(&env, &user_1);
     let (token_contract_id, token_client) = create_token_contract(&env, &user_1);
 
-    client.with_source_account(&user_1).init();
     // check that init worked
     assert_eq!(
         1,
@@ -136,4 +135,40 @@ fn test() {
     assert_eq!(BigInt::from_u64(&env, 1), token_client.balance(&Identifier::Contract(dao_contract_id.clone())) );
 
 
+}
+
+
+#[test]
+#[should_panic]
+fn cannot_execute_prop_twice() {
+    let env = Env::default();
+
+    let user_1 = env.accounts().generate();
+
+    let (dao_contract_id, client) = create_dao_contract(&env, &user_1);
+
+    // create proposal that executes code
+    let prop = Proposal {
+        tot_votes: 0,
+        instr: vec![
+            &env,
+            ProposalInstr {
+                c_id: dao_contract_id.clone().into(),
+                fun_name: symbol!("add_shares"),
+                args: vec![
+                    &env,
+                    (10i32).into_val(&env),
+                    Address::Account(user_1.clone()).into_val(&env),
+                ],
+            },
+        ],
+        end_time: env.ledger().timestamp() + 1,
+    };
+
+    let prop_id = client.c_prop(&prop);
+
+    client.with_source_account(&user_1).vote(&prop_id);
+
+    client.execute(&prop_id);
+    client.execute(&prop_id);
 }
